@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agente-datos/contrato/reglas_calidad/v1",
+  "title": "Contrato de configuracion · Reglas de calidad de datos",
+  "description": "v1.0.0. Fichero de configuracion que consume agente_calidad_datos.py: describe a que tabla de SQL Server conectarse, que reglas de calidad verificar (motor deterministico, traducido a SQL) y que columnas vigilar para deteccion de anomalias estadisticas. Es configuracion INTERNA escrita por el equipo de datos, no input de usuario final: los campos 'condicion'/'condicion_si'/'condicion_entonces' son fragmentos SQL crudos a proposito (escape hatch para reglas de negocio arbitrarias).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conexion", "reglas"],
+  "properties": {
+    "conexion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["servidor", "base_datos", "tabla"],
+      "properties": {
+        "servidor": { "type": "string", "minLength": 1, "description": "Instancia SQL Server (host o host\\instancia)." },
+        "base_datos": { "type": "string", "minLength": 1 },
+        "esquema": { "type": "string", "minLength": 1, "default": "dbo" },
+        "tabla": { "type": "string", "minLength": 1 },
+        "driver": { "type": "string", "default": "ODBC Driver 17 for SQL Server" },
+        "auth_windows": { "type": "boolean", "default": true, "description": "Si es false, se usan 'usuario'/'password'." },
+        "usuario": { "type": ["string", "null"], "default": null },
+        "password": { "type": ["string", "null"], "default": null },
+        "columnas_clave": {
+          "type": "array", "items": { "type": "string" }, "minItems": 1,
+          "description": "Columna(s) clave primaria, para identificar filas en las muestras del informe."
+        }
+      }
+    },
+    "reglas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tipo"],
+        "allOf": [
+          {
+            "if": { "properties": { "tipo": { "const": "no_nulo" } }, "required": ["tipo"] },
+            "then": { "required": ["columna"] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "rango" } }, "required": ["tipo"] },
+            "then": { "required": ["columna"], "anyOf": [{ "required": ["min"] }, { "required": ["max"] }] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "valores_permitidos" } }, "required": ["tipo"] },
+            "then": { "required": ["columna", "valores"] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "patron_like" } }, "required": ["tipo"] },
+            "then": { "required": ["columna", "patron"] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "unico" } }, "required": ["tipo"] },
+            "then": { "required": ["columnas"] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "condicional" } }, "required": ["tipo"] },
+            "then": { "required": ["condicion_si", "condicion_entonces", "descripcion"] }
+          },
+          {
+            "if": { "properties": { "tipo": { "const": "sql_personalizada" } }, "required": ["tipo"] },
+            "then": { "required": ["condicion", "descripcion"] }
+          }
+        ],
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": ["no_nulo", "rango", "valores_permitidos", "patron_like", "unico", "condicional", "sql_personalizada"],
+            "description": "Tipo de regla. Determina que otros campos son obligatorios (ver 'allOf')."
+          },
+          "columna": { "type": "string", "minLength": 1, "description": "Columna sobre la que aplica la regla (tipos de una sola columna)." },
+          "columnas": {
+            "type": "array", "items": { "type": "string" }, "minItems": 1,
+            "description": "Columna(s) sobre las que aplica la regla (p.ej. 'unico' compuesto)."
+          },
+          "min": { "type": "number", "description": "Limite inferior inclusivo (regla 'rango'). Omitible si solo se acota por arriba." },
+          "max": { "type": "number", "description": "Limite superior inclusivo (regla 'rango'). Omitible si solo se acota por abajo." },
+          "valores": {
+            "type": "array", "items": { "type": ["string", "number"] }, "minItems": 1,
+            "description": "Dominio de valores permitidos (regla 'valores_permitidos')."
+          },
+          "patron": { "type": "string", "minLength": 1, "description": "Patron T-SQL LIKE, p.ej. '%@%' (regla 'patron_like')." },
+          "condicion_si": { "type": "string", "minLength": 1, "description": "Fragmento SQL booleano: cuando se cumple, aplica 'condicion_entonces' (regla 'condicional')." },
+          "condicion_entonces": { "type": "string", "minLength": 1, "description": "Fragmento SQL booleano que debe cumplirse si 'condicion_si' es cierto (regla 'condicional')." },
+          "condicion": { "type": "string", "minLength": 1, "description": "Fragmento SQL booleano arbitrario que debe cumplirse en toda fila (regla 'sql_personalizada')." },
+          "descripcion": { "type": "string", "minLength": 5, "description": "Explicacion en negocio de la regla; obligatoria en 'condicional' y 'sql_personalizada' porque su logica no es autoexplicativa." },
+          "severidad": { "type": "string", "enum": ["alta", "media", "baja"], "default": "media" },
+          "clave_diccionario": {
+            "type": ["string", "null"], "default": null,
+            "description": "CLAVE opcional (Servidor.BD.Esquema.Tabla.Columna) ya documentada en el diccionario (APP_CATALOGO), para dar contexto de negocio al LLM al explicar el hallazgo. Si la tabla es nueva y no esta documentada, se deja null."
+          }
+        }
+      }
+    },
+    "anomalias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numericas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["columnas"],
+          "properties": {
+            "columnas": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "metodo": { "type": "string", "enum": ["zscore", "iqr"], "default": "zscore" },
+            "umbral": { "type": "number", "default": 3.0, "description": "Umbral de z-score (metodo zscore)." },
+            "factor_iqr": { "type": "number", "default": 1.5, "description": "Factor multiplicador del rango intercuartilico (metodo iqr)." }
+          }
+        },
+        "categoricas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["columnas"],
+          "properties": {
+            "columnas": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "umbral_pct": { "type": "number", "default": 0.5, "description": "Por debajo de este porcentaje de filas, un valor de la columna se considera categoria rara." }
+          }
+        }
+      }
+    }
+  }
+}

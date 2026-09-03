@@ -1,0 +1,8 @@
+﻿pyodbc
+sentence-transformers
+jsonschema
+flask
+waitress
+requests
+msal
+openpyxl

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación del LLM - Calidad de Datos</title>
+<link rel="stylesheet" href="/ui_base.css">
+<style>
+  :root{
+    --rojo:#E5002B; --vino:#960047; --vino2:#7d003b;
+    --tinta:#2b2b2b; --suave:#6b7280; --linea:#e3e3e8; --gris:#f6f7f9;
+    --ok:#1f7a52; --ok-bg:#e3f3ea; --no:#C8102E; --no-bg:#fae9e7;
+    --warn:#9a6b16; --warn-bg:#fbf0d9;
+    --mono:"Consolas",ui-monospace,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  }
+  html,body{background:#fff;color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .subnav{padding:10px 26px 0;font-size:13px}
+  .subnav a{color:var(--suave);text-decoration:none;margin-right:14px}
+  .subnav a.activo{color:var(--vino);font-weight:600}
+  .superior{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:14px 26px 0}
+  .btn{border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-pub{background:var(--vino);color:#fff}
+  .btn-sec{background:#fff;color:var(--vino);border:1px solid #d8b8c6}
+  .btn:hover:not(:disabled){filter:brightness(1.06)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .caja{margin:16px 26px;border:1px solid var(--linea);border-radius:10px;background:#fff}
+  .caja h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);
+           margin:0;padding:12px 16px;border-bottom:1px solid var(--linea);font-weight:700}
+  .caja .cuerpo{padding:14px 16px}
+  label.lbl{display:block;font-size:11.5px;color:var(--suave);margin-bottom:4px;font-weight:600}
+  input.in{width:100%;border:1px solid var(--linea);border-radius:7px;padding:8px 10px;
+        font-family:var(--mono);font-size:13px;color:var(--tinta)}
+  input.in:focus{outline:none;border-color:var(--rojo)}
+  .fila-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+  .estado{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--suave);margin-top:10px}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--suave)}
+  .punto.corriendo{background:var(--ok);animation:pulso 1.2s infinite}
+  @keyframes pulso{0%,100%{opacity:1}50%{opacity:.3}}
+  select.in{width:auto;font-family:var(--sans)}
+  .badge{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center}
+  .b-ok{background:var(--ok-bg);color:var(--ok)} .b-no{background:var(--no-bg);color:var(--no)}
+  .b-warn{background:var(--warn-bg);color:var(--warn)} .b-neutro{background:var(--gris);color:var(--suave)}
+  .regla{border:1px solid var(--linea);border-radius:9px;margin:0 26px 14px}
+  .regla-cab{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;flex-wrap:wrap}
+  .regla-cab:hover{background:var(--gris)}
+  .regla-cab .id{font-weight:700;color:var(--vino2);font-family:var(--mono)}
+  .regla-cab .desc{color:var(--tinta);font-size:13px;flex:1;min-width:200px}
+  .regla-cab .resumen{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .regla-cuerpo{display:none;border-top:1px solid var(--linea);padding:14px}
+  .regla-cuerpo.abierto{display:block}
+  .bloque-real{background:var(--gris);border:1px solid var(--linea);border-radius:8px;padding:10px 12px;margin-bottom:14px}
+  .bloque-real .et{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);font-weight:700;margin-bottom:6px}
+  pre.sql{background:#2a0d19;color:#f3d9e4;border-radius:8px;padding:12px;overflow:auto;font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;word-break:break-word;margin:0}
+  .intento{border:1px solid var(--linea);border-radius:8px;padding:10px 12px;margin-bottom:9px}
+  .intento-cab{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--suave);margin-bottom:8px}
+  .intento-cab .n{font-weight:700;color:var(--tinta)}
+  .campo-json{font-family:var(--mono);font-size:11.5px;background:var(--gris);border:1px solid var(--linea);border-radius:7px;padding:8px 10px;white-space:pre-wrap;word-break:break-word;margin-bottom:8px}
+  .vacio{color:var(--suave);font-size:13px;padding:30px;text-align:center}
+  .cargando{color:var(--suave);padding:20px;text-align:center}
+  .ident{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--suave);margin-left:auto}
+  .ident input{border:1px solid var(--linea);border-radius:7px;padding:6px 9px;font-family:var(--sans);font-size:12.5px;width:160px}
+  .ident input:focus{outline:none;border-color:var(--rojo)}
+  .etiquetado{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .btn-etq{border:1px solid var(--linea);background:#fff;border-radius:6px;padding:4px 10px;font-size:11.5px;
+           font-weight:650;cursor:pointer;font-family:var(--sans);color:var(--suave)}
+  .btn-etq:hover{filter:brightness(0.97)}
+  .btn-etq.activo-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+  .btn-etq.activo-no{background:var(--no-bg);color:var(--no);border-color:var(--no)}
+  .etq-info{font-size:11px;color:var(--suave)}
+  .badge.b-conflicto{background:var(--warn-bg);color:var(--warn)}
+  .in-nota{flex:1;min-width:220px;border:1px solid var(--linea);border-radius:6px;padding:4px 9px;
+           font-family:var(--sans);font-size:11.5px;color:var(--tinta)}
+  .in-nota:focus{outline:none;border-color:var(--rojo)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/calidad" class="brand">Reglas de Calidad</a>
+  <nav class="nav">
+    <a href="/calidad" class="activo">Calidad</a>
+  </nav>
+</div>
+<div class="subnav">
+  <a href="/calidad">Informes</a>
+  <a href="/calidad/reglas">Reglas pendientes</a>
+  <a href="/calidad/evaluacion" class="activo">Evaluación LLM</a>
+</div>
+
+<div class="superior">
+  <div class="estado">
+    <span class="punto" id="puntoEstado"></span>
+    <span id="textoEstado">Comprobando estado...</span>
+  </div>
+  <div class="ident">
+    <span>Revisor:</span>
+    <input id="revisor" placeholder="tu usuario (para etiquetar)" autocomplete="off">
+  </div>
+</div>
+
+<div class="caja">
+  <h2>Lanzar nueva evaluación</h2>
+  <div class="cuerpo">
+    <p style="font-size:12.5px;color:var(--suave);margin:0 0 12px">
+      Compara la traducción del LLM contra el bloque real ya escrito a mano (reglas <b>implementadas</b>,
+      hasta 20 intentos cada una, parando si acierta dentro de los primeros 5) y traduce reglas activas
+      <b>sin implementar</b> todavía (1 intento, sin comparación posible, para revisión humana). Cada
+      intento tarda 1-4 minutos — el lote corre en segundo plano.
+    </p>
+    <div class="fila-form">
+      <div>
+        <label class="lbl">Id_Calidad_Tabla_Atributo implementadas (separadas por coma)</label>
+        <input class="in" id="fImplementadas" value="44, 61, 67, 1078, 31">
+      </div>
+      <div>
+        <label class="lbl">Id_Calidad_Tabla_Atributo sin implementar (separadas por coma)</label>
+        <input class="in" id="fNoImplementadas" value="8, 9, 6, 7, 51">
+      </div>
+      <button class="btn btn-pub" id="btnLanzar" onclick="lanzarLote()">Lanzar lote</button>
+    </div>
+  </div>
+</div>
+
+<div class="caja">
+  <h2>Resultados</h2>
+  <div class="cuerpo" style="display:flex;align-items:center;gap:10px">
+    <label class="lbl" style="margin:0">Lote:</label>
+    <select class="in" id="selectorLote" onchange="cambiarLote()"></select>
+    <button class="btn btn-sec btn-sm" onclick="cargarResultados()">Refrescar</button>
+  </div>
+</div>
+
+<div id="listaReglas"><div class="cargando">Cargando...</div></div>
+
+<div class="footer">
+  <span>Reglas de Calidad · la entidad · Evaluación LLM</span>
+  <span><a href="/calidad">Informes</a><a href="/calidad/reglas">Reglas pendientes</a></span>
+</div>
+
+<script>
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let estado = { loteActual: null, resultados: [], abiertos: new Set(), notas: {} };
+let _pollTimer = null;
+
+async function estadoLote(){
+  const r = await fetch('/api/calidad/evaluacion/estado');
+  return await r.json();
+}
+async function listarLotes(){
+  const r = await fetch('/api/calidad/evaluacion/lotes');
+  return await r.json();
+}
+async function obtenerResultados(lote){
+  const url = lote ? `/api/calidad/evaluacion/resultados?lote=${encodeURIComponent(lote)}` : '/api/calidad/evaluacion/resultados';
+  const r = await fetch(url);
+  return await r.json();
+}
+async function etiquetar(id, correcta, nota){
+  const revisor = document.getElementById('revisor').value.trim();
+  if(correcta !== null && !revisor) throw new Error('Indica el revisor arriba a la derecha antes de etiquetar.');
+  const r = await fetch(`/api/calidad/evaluacion/${id}/etiquetar`, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({correcta, revisor, nota})});
+  const j = await r.json();
+  if(!r.ok) throw new Error(j.error || 'no se pudo etiquetar');
+}
+
+async function refrescarEstado(){
+  try{
+    const e = await estadoLote();
+    const punto = document.getElementById('puntoEstado');
+    const texto = document.getElementById('textoEstado');
+    if(e.corriendo){
+      punto.className = 'punto corriendo';
+      texto.textContent = `Corriendo: ${e.progreso || ''} (lote ${e.lote})`;
+      document.getElementById('btnLanzar').disabled = true;
+    } else {
+      punto.className = 'punto';
+      texto.textContent = 'Sin lote en curso.';
+      document.getElementById('btnLanzar').disabled = false;
+    }
+  }catch(e){}
+}
+
+async function cargarLotes(){
+  const lotes = await listarLotes();
+  const sel = document.getElementById('selectorLote');
+  sel.innerHTML = lotes.map(l => `<option value="${esc(l.Lote)}">${esc(l.Lote)} (${l.Filas} filas)</option>`).join('');
+  if(lotes.length) estado.loteActual = lotes[0].Lote;
+}
+
+function agrupar(resultados){
+  const grupos = new Map();
+  for(const r of resultados){
+    const id = r.Id_Calidad_Tabla_Atributo;
+    if(!grupos.has(id)) grupos.set(id, []);
+    grupos.get(id).push(r);
+  }
+  return grupos;
+}
+
+function pintarReglas(){
+  const cont = document.getElementById('listaReglas');
+  const activo = document.activeElement;
+  const enfoque = (activo && activo.id && activo.id.startsWith('nota-'))
+    ? { id: activo.id, inicio: activo.selectionStart, fin: activo.selectionEnd }
+    : null;
+  if(!estado.resultados.length){
+    cont.innerHTML = '<div class="vacio">No hay resultados todavía para este lote.</div>';
+    return;
+  }
+  const grupos = agrupar(estado.resultados);
+  let html = '';
+  for(const [id, filas] of grupos){
+    const primera = filas[0];
+    const categoria = primera.Categoria;
+    const aciertos = filas.filter(f => f.Coincide === true).length;
+    const fallos = filas.filter(f => f.Coincide === false).length;
+    const sinJuzgar = filas.filter(f => f.Coincide === null || f.Coincide === undefined).length;
+    const confirmadas = filas.filter(f => f.Correcta_Humano === true).length;
+    const conflictos = filas.filter(f =>
+      (f.Correcta_Humano === true && (f.Coincide === false || f.Coincide == null)) ||
+      (f.Correcta_Humano === false && f.Coincide === true)).length;
+    const abierto = estado.abiertos.has(id);
+
+    let resumenBadges = '';
+    if(categoria === 'implementada'){
+      resumenBadges = `
+        ${aciertos ? `<span class="badge b-ok">${aciertos} acierto(s)</span>` : ''}
+        ${fallos ? `<span class="badge b-no">${fallos} fallo(s)</span>` : ''}
+        ${sinJuzgar ? `<span class="badge b-neutro">${sinJuzgar} sin juzgar</span>` : ''}
+        <span class="badge b-neutro">${filas.length} intento(s)</span>
+        ${confirmadas ? `<span class="badge b-ok">${confirmadas} confirmada(s) humano</span>` : ''}
+        ${conflictos ? `<span class="badge b-conflicto">${conflictos} conflicto(s) arnés</span>` : ''}`;
+    } else {
+      resumenBadges = `<span class="badge b-warn">sin implementar</span>
+        ${confirmadas ? `<span class="badge b-ok">${confirmadas} confirmada(s) humano</span>` : ''}`;
+    }
+
+    html += `<div class="regla">
+      <div class="regla-cab" onclick="toggleRegla(${id})">
+        <span class="id">#${id}</span>
+        <span class="desc">${esc(primera.Desc_Funcional)}</span>
+        <span class="resumen">${resumenBadges}</span>
+      </div>
+      <div class="regla-cuerpo ${abierto?'abierto':''}" id="cuerpo-${id}">`;
+
+    if(primera.Bloque_Real){
+      html += `<div class="bloque-real">
+        <div class="et">Bloque real (${esc(primera.Procedimiento_Real)})</div>
+        <pre class="sql">${esc(primera.Bloque_Real)}</pre>
+      </div>`;
+    }
+
+    for(const f of filas){
+      const p = f.Propuesta_JSON || {};
+      const badgeCoincide = f.Coincide === true ? '<span class="badge b-ok">coincide</span>'
+        : f.Coincide === false ? '<span class="badge b-no">no coincide</span>'
+        : '<span class="badge b-neutro">sin juzgar</span>';
+
+      const humano = f.Correcta_Humano;
+      const conflicto = humano === true && (f.Coincide === false || f.Coincide == null) ? 'falso negativo del arnés'
+        : humano === false && f.Coincide === true ? 'falso positivo del arnés' : null;
+
+      html += `<div class="intento">
+        <div class="intento-cab">
+          <span class="n">Intento ${f.Intento}</span>
+          ${categoria === 'implementada' ? badgeCoincide : ''}
+          ${conflicto ? `<span class="badge b-conflicto">${conflicto}</span>` : ''}
+          ${p.aviso_contexto ? `<span class="badge b-conflicto">⚠ posible pérdida de contexto</span>` : ''}
+          <span>confianza ${p.confianza!=null ? Math.round(p.confianza*100)+'%' : '—'}</span>
+          <span>${f.Tiempo_Segundos!=null ? f.Tiempo_Segundos.toFixed(1)+'s' : ''}</span>
+          <span>${f.Tokens_Entrada!=null || f.Tokens_Salida!=null ? `tokens ${f.Tokens_Entrada ?? '—'}→${f.Tokens_Salida ?? '—'}` : ''}</span>
+        </div>
+        ${p.aviso_contexto ? `<div style="font-size:11.5px;color:var(--warn);margin-bottom:8px">${esc(p.aviso_contexto)}</div>` : ''}
+        <div class="campo-json">${esc(JSON.stringify(p, null, 2))}</div>
+        ${f.Bloque_Generado ? `<pre class="sql">${esc(f.Bloque_Generado)}</pre>` : '<div style="font-size:12px;color:var(--no)">No se generó bloque.</div>'}
+        <div class="etiquetado">
+          <button class="btn-etq ${humano===true?'activo-ok':''}" onclick="toggleEtiqueta(${f.Id}, true)">✓ Realmente correcta</button>
+          <button class="btn-etq ${humano===false?'activo-no':''}" onclick="toggleEtiqueta(${f.Id}, false)">✗ Realmente incorrecta</button>
+          <input type="text" class="in-nota" id="nota-${f.Id}" maxlength="500"
+                 placeholder="Notas del revisor (problemas encontrados)..."
+                 value="${esc(estado.notas[f.Id] !== undefined ? estado.notas[f.Id] : (f.Nota_Humano||''))}"
+                 oninput="estado.notas[${f.Id}] = this.value">
+          ${humano!=null ? `<span class="etq-info">${esc(f.Revisor_Humano||'')}${f.Fecha_Etiqueta_Humano ? ' · '+esc(String(f.Fecha_Etiqueta_Humano).slice(0,16).replace('T',' ')) : ''}</span>` : ''}
+        </div>
+      </div>`;
+    }
+
+    html += `</div></div>`;
+  }
+  cont.innerHTML = html;
+  if(enfoque){
+    const campo = document.getElementById(enfoque.id);
+    if(campo){
+      campo.focus();
+      try{ campo.setSelectionRange(enfoque.inicio, enfoque.fin); }catch(e){}
+    }
+  }
+}
+
+function toggleRegla(id){
+  if(estado.abiertos.has(id)) estado.abiertos.delete(id); else estado.abiertos.add(id);
+  pintarReglas();
+}
+
+async function toggleEtiqueta(id, valor){
+  const fila = estado.resultados.find(f => f.Id === id);
+  const actual = fila ? fila.Correcta_Humano : null;
+  const nuevo = (actual === valor) ? null : valor;
+  const campoNota = document.getElementById(`nota-${id}`);
+  const nota = campoNota ? campoNota.value.trim() : '';
+  try{
+    await etiquetar(id, nuevo, nuevo === null ? null : (nota || null));
+    if(nuevo === null) delete estado.notas[id];
+    localStorage.setItem('calidad_revisor', document.getElementById('revisor').value.trim());
+    await cargarResultados();
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function cargarResultados(){
+  estado.resultados = await obtenerResultados(estado.loteActual);
+  pintarReglas();
+}
+
+async function cambiarLote(){
+  estado.loteActual = document.getElementById('selectorLote').value;
+  estado.notas = {};
+  await cargarResultados();
+}
+
+async function lanzarLote(){
+  const impl = document.getElementById('fImplementadas').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const noImpl = document.getElementById('fNoImplementadas').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const btn = document.getElementById('btnLanzar');
+  btn.disabled = true;
+  try{
+    const r = await fetch('/api/calidad/evaluacion/lanzar', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({implementadas: impl, no_implementadas: noImpl})});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error || 'no se pudo lanzar');
+    estado.loteActual = j.lote;
+    await cargarLotes();
+    document.getElementById('selectorLote').value = j.lote;
+  }catch(e){
+    alert(e.message);
+  }
+  await refrescarEstado();
+}
+
+async function bucle(){
+  await refrescarEstado();
+  await cargarResultados();
+}
+
+(async function init(){
+  document.getElementById('revisor').value = localStorage.getItem('calidad_revisor') || '';
+  await cargarLotes();
+  if(estado.loteActual) document.getElementById('selectorLote').value = estado.loteActual;
+  await bucle();
+  _pollTimer = setInterval(bucle, 12000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+/* ============================================================================
+   ui_base.css  ·  Cabecera y navegacion comunes del Diccionario de Datos la entidad
+   ----------------------------------------------------------------------------
+   Fuente unica de la barra superior y del menu de navegacion. Todas las
+   paginas enlazan este fichero, asi la nav es identica en todas y se cambia
+   en UN solo sitio.
+
+   NOTA: cada pagina conserva su propio :root con sus matices de color; el
+   :root de aqui son solo valores por defecto/fallback. No pisa a los de las
+   paginas (su <style> va despues de este <link>).
+   ============================================================================ */
+
+:root{
+  --rojo:#E5002B; --vino:#960047; --vino2:#7d003b;
+  --tinta:#2b2b2b; --suave:#6b7280; --linea:#e3e3e8; --gris:#f6f7f9;
+  --ok:#1f7a52; --ok-bg:#e3f3ea; --warn:#9a6b16; --warn-bg:#fbf0d9;
+  --aviso:#9a6b16; --aviso-bg:#fbf0d9; --no:#C8102E; --rama:#e0b9cb;
+}
+
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;color:var(--tinta);background:#fff}
+
+/* --------------------------- BARRA SUPERIOR ------------------------------- */
+.topbar{display:flex;align-items:center;gap:24px;padding:13px 26px;
+        border-bottom:1px solid var(--linea);background:#fff;flex-wrap:wrap;
+        position:sticky;top:0;z-index:30}
+.brand{font-size:25px;font-weight:800;color:var(--rojo);letter-spacing:-.5px;text-decoration:none}
+
+.nav{margin-left:auto;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.nav a{color:#4b5563;text-decoration:none;font-size:15px;padding:18px 2px;
+       border-bottom:3px solid transparent;white-space:nowrap}
+.nav a:hover{color:var(--tinta)}
+.nav a.activo{color:var(--vino);font-weight:600;border-bottom-color:var(--rojo)}
+.nav .beta{font-size:10px;background:var(--vino);color:#fff;border-radius:10px;
+           padding:1px 6px;margin-left:4px;vertical-align:middle}
+
+.ident{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--suave)}
+.ident input{padding:6px 9px;border:1px solid var(--linea);border-radius:4px;font-size:13px;min-width:150px}
+.ident input:focus{outline:none;border-color:var(--rojo)}
+
+/* -------------------------------- PIE ------------------------------------- */
+.footer{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;
+        padding:7px 26px;border-top:1px solid var(--linea);background:#fafafa;
+        font-size:12px;color:var(--suave)}
+.footer a{color:var(--suave);text-decoration:none;margin-left:16px}
+
+/* ---------------------------- RESPONSIVE ---------------------------------- */
+@media (max-width:760px){
+  .topbar{gap:12px}
+  .nav{gap:14px;width:100%;margin-left:0}
+  .nav a{padding:8px 0}
+}
+
+/* =========================================================================
+   COMPONENTES COMUNES  (centralizados; las paginas con variante propia
+   conservan la suya, que prevalece por ir despues en el <style> de pagina)
+   ========================================================================= */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--vino2);color:#fff;padding:11px 20px;border-radius:9px;font-size:13.5px;box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;transition:.25s;z-index:70}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.ok{background:var(--ok)}
+.fondo{position:fixed;inset:0;background:rgba(40,10,25,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.fondo.abierto{display:flex}
+.btn{border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-val{background:var(--ok);color:#fff}
+.modal .in{padding:16px 20px}
+.modal h2{margin:0;padding:14px 20px;font-size:16px;color:#fff;background:var(--vino)}
+.pie{padding:13px 20px;border-top:1px solid var(--linea);display:flex;justify-content:flex-end;gap:9px}
+.err{color:var(--rojo);font-size:13px;margin:6px 20px 0}
+.campo{margin-bottom:12px}
+.campo label{display:block;font-size:12px;color:var(--suave);margin-bottom:4px;font-weight:600}
+.campo input,.campo textarea,.campo select{width:100%;padding:8px 10px;border:1px solid var(--linea);border-radius:5px;font-size:14px;font-family:inherit}
+.campo input:focus,.campo textarea:focus{outline:none;border-color:var(--rojo)}
+.campo textarea{resize:vertical;min-height:60px}
+.req::after{content:" *";color:var(--rojo)}
+.b-bor{background:var(--warn-bg);color:var(--warn)}
+.b-cnt{background:#eef1f5;color:var(--suave)}
+.tarjeta{background:#fff;border:1px solid var(--linea);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.tarjeta h2{margin:0;padding:10px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:var(--vino)}
+.tarjeta .in{padding:14px 16px}

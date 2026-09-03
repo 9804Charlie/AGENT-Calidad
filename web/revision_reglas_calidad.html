@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reglas de Calidad - Revisión</title>
+<link rel="stylesheet" href="/ui_base.css">
+<style>
+  :root{
+    --rojo:#E5002B; --vino:#960047; --vino2:#7d003b;
+    --tinta:#2b2b2b; --suave:#6b7280; --linea:#e3e3e8; --gris:#f6f7f9;
+    --ok:#1f7a52; --ok-bg:#e3f3ea; --no:#C8102E; --no-bg:#fae9e7;
+    --warn:#9a6b16; --warn-bg:#fbf0d9;
+    --mono:"Consolas",ui-monospace,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  }
+  html,body{background:#fff;color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .subnav{padding:10px 26px 0;font-size:13px}
+  .subnav a{color:var(--suave);text-decoration:none;margin-right:14px}
+  .subnav a.activo{color:var(--vino);font-weight:600}
+  .superior{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 26px 0}
+  .acc{margin-left:auto;display:flex;align-items:center;gap:10px;border:1px solid var(--linea);
+       border-radius:8px;padding:8px 12px;background:var(--gris)}
+  .acc .txt{font-size:12.5px;color:var(--suave)}
+  .btn{border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-no{background:var(--no);color:#fff}
+  .btn-pub{background:var(--vino);color:#fff}
+  .btn-sec{background:#fff;color:var(--vino);border:1px solid #d8b8c6}
+  .btn:hover:not(:disabled){filter:brightness(1.06)}
+  .fondo{position:fixed;inset:0;background:rgba(40,10,25,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
+  .fondo.abierto{display:flex}
+  .modal{background:#fff;border-radius:8px;max-width:900px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  .modal h2{margin:0;padding:15px 20px;font-size:16px;color:#fff;background:var(--vino)}
+  .modal .cuerpo{padding:18px 20px}
+  .modal .pie{padding:13px 20px;border-top:1px solid var(--linea);display:flex;justify-content:flex-end;gap:9px}
+  pre.sql{background:#2a0d19;color:#f3d9e4;border-radius:8px;padding:14px;overflow:auto;font-family:var(--mono);font-size:12px;white-space:pre-wrap;word-break:break-word}
+  .nota{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border:1px solid #f0e2bf;border-radius:7px;padding:9px 11px;margin-bottom:12px}
+  .wrap{display:grid;grid-template-columns:360px 1fr;height:calc(100% - 155px)}
+  .lista{border-right:1px solid var(--linea);overflow-y:auto;padding:14px 14px 70px}
+  .tabs-vista{display:flex;gap:4px;margin:2px 2px 12px;border-bottom:1px solid var(--linea)}
+  .tab-vista{background:none;border:none;border-bottom:2px solid transparent;padding:8px 4px;margin-right:14px;
+             font-size:12.5px;font-weight:650;color:var(--suave);cursor:pointer;font-family:var(--sans)}
+  .tab-vista.activo{color:var(--vino);border-bottom-color:var(--vino)}
+  .tab-vista .cuenta-tab{font-weight:600;color:var(--suave);margin-left:4px}
+  .badge-nueva{background:var(--warn-bg);color:var(--warn)}
+  .barra-l{display:flex;align-items:center;gap:8px;margin:2px 2px 10px}
+  .barra-l h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);margin:0;font-weight:700}
+  .barra-l .cuenta{margin-left:auto;font-size:12px;color:var(--suave)}
+  .item{border:1px solid var(--linea);border-radius:9px;padding:10px 12px;margin-bottom:9px;background:#fff;cursor:pointer}
+  .item:hover{border-color:#cdb0bd}
+  .item.sel{border-color:var(--vino);box-shadow:0 0 0 2px rgba(150,0,71,.14)}
+  .item .atr{font-weight:650;color:var(--vino2);word-break:break-word}
+  .item .tabla{font-family:var(--mono);font-size:11px;color:var(--suave);margin-top:4px;word-break:break-all}
+  .item .meta{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .badge{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center}
+  .b-conf-alta{background:var(--ok-bg);color:var(--ok)} .b-conf-media{background:var(--warn-bg);color:var(--warn)}
+  .b-conf-baja{background:var(--no-bg);color:var(--no)}
+  .b-sinres{background:var(--no-bg);color:var(--no)}
+  .detalle{overflow-y:auto;padding:20px 26px 70px}
+  .vacio{display:flex;height:100%;align-items:center;justify-content:center;color:var(--suave);text-align:center}
+  .dcab .atr{font-size:16px;font-weight:650;color:var(--vino2)}
+  .dcab .badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+  .ficha,.decision{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:6px 18px 16px;margin-top:14px}
+  .decision{padding:16px 18px}
+  .campo{padding:13px 0;border-bottom:1px solid var(--gris)}
+  .campo:last-child{border-bottom:none}
+  .et{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);font-weight:700;margin-bottom:5px}
+  .resp{font-size:14px;line-height:1.55;background:var(--gris);border:1px solid var(--linea);border-radius:8px;padding:10px 12px}
+  textarea.edit,textarea.in{width:100%;border:1px solid var(--linea);border-radius:7px;padding:9px 11px;
+        font-family:var(--mono);font-size:13px;line-height:1.5;resize:vertical;color:var(--tinta)}
+  textarea.edit{min-height:200px}
+  textarea.in{font-family:var(--sans);min-height:56px}
+  textarea.edit:focus,textarea.in:focus{outline:none;border-color:var(--rojo)}
+  label.lbl{display:block;font-size:11.5px;color:var(--suave);margin-bottom:4px;font-weight:600}
+  .fila{margin-bottom:12px}
+  .acciones{display:flex;gap:10px;flex-wrap:wrap}
+  h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave)}
+  .cargando{color:var(--suave);padding:24px;text-align:center}
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--vino2);color:#fff;
+         padding:11px 20px;border-radius:9px;font-size:13.5px;box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;transition:.25s;z-index:70}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.no{background:var(--no)}
+  @media(max-width:820px){ .wrap{grid-template-columns:1fr;height:auto} .lista{border-right:none;border-bottom:1px solid var(--linea)} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/calidad" class="brand">Reglas de Calidad</a>
+  <nav class="nav">
+    <a href="/calidad" class="activo">Calidad</a>
+  </nav>
+</div>
+<div class="subnav">
+  <a href="/calidad">Informes</a>
+  <a href="/calidad/reglas" class="activo">Reglas pendientes</a>
+  <a href="/calidad/evaluacion">Evaluación LLM</a>
+</div>
+
+<div class="superior">
+  <div class="ident"><span>Revisor:</span><input id="revisor" placeholder="tu usuario (obligatorio)" autocomplete="off"></div>
+  <div class="acc">
+    <button class="btn btn-sec" id="btnDetectar" onclick="detectarNuevas()">Buscar reglas nuevas ahora</button>
+    <button class="btn btn-sec" id="btnDesplegar" onclick="abrirDespliegue()">Desplegar Sp_Calidad_AgenteIA</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <aside class="lista">
+    <div class="tabs-vista">
+      <button class="tab-vista activo" id="tabPendientes" onclick="cambiarVista('pendientes')">Pendientes</button>
+      <button class="tab-vista" id="tabNuevas" onclick="cambiarVista('nuevas')">Reglas nuevas</button>
+    </div>
+    <div class="barra-l">
+      <h2 id="tituloLista">Pendientes</h2>
+      <span class="cuenta" id="cuenta"></span>
+    </div>
+    <div id="items"><div class="cargando">Cargando...</div></div>
+  </aside>
+
+  <main class="detalle" id="detalle">
+    <div class="vacio">Selecciona una propuesta de la izquierda para revisarla, o pulsa "Sincronizar reglas" si acaba de cambiar la lista de SharePoint.</div>
+  </main>
+</div>
+
+<div class="footer">
+  <span>Reglas de Calidad · la entidad · Revisión</span>
+  <span><a href="/calidad">Informes</a><a href="/calidad/reglas">Reglas pendientes</a></span>
+</div>
+
+<!-- MODAL DESPLIEGUE Sp_Calidad_AgenteIA -->
+<div class="fondo" id="fondoDespliegue">
+  <div class="modal">
+    <h2>Desplegar Sp_Calidad_AgenteIA</h2>
+    <div class="cuerpo" id="cuerpoDespliegue"></div>
+    <div class="pie">
+      <button class="btn btn-sec" onclick="cerrarDespliegue()">Cerrar</button>
+      <button class="btn btn-pub" id="btnConfirmarDespliegue" onclick="confirmarDespliegue()">Desplegar en DW_PRINCIPAL</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const DataAPI = {
+  async pendientes(){ const r = await fetch('/api/calidad/reglas/pendientes'); if(!r.ok) throw new Error('No se pudieron cargar las propuestas'); return await r.json(); },
+  async ver(id){ const r = await fetch(`/api/calidad/reglas/${id}`); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo cargar la propuesta'); return j; },
+  async nuevas(){ const r = await fetch('/api/calidad/reglas/nuevas'); const j = await r.json().catch(()=>([])); if(!r.ok) throw new Error(j.error||'No se pudieron cargar las reglas nuevas'); return j; },
+  async detectar(){ const r = await fetch('/api/calidad/reglas/detectar',{method:'POST'}); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo detectar'); return j; },
+  async aprobarNueva(id){ const r = await fetch(`/api/calidad/reglas/${id}/aprobar_nueva`,{method:'POST'}); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo aprobar'); return j; },
+  async regenerar(id, body){ const r = await fetch(`/api/calidad/reglas/${id}/regenerar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo regenerar'); return j; },
+  async previsualizarDespliegue(){ const r = await fetch('/api/calidad/sp_agente_ia/previsualizar'); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo generar la vista previa'); return j; },
+  async desplegar(){ const r = await fetch('/api/calidad/sp_agente_ia/desplegar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmar:true})}); const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo desplegar'); return j; },
+  async revisar(id, decision, revisor, comentario, reglaFinal){
+    const r = await fetch(`/api/calidad/reglas/${id}/revisar`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({decision, revisor, comentario, reglaFinal})});
+    const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'No se pudo guardar la decisión'); return j;
+  }
+};
+
+let estado = { propuestas:[], nuevas:[], vista:'pendientes', selId:null, selTipo:null };
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function revisor(){ return (document.getElementById('revisor').value||'').trim(); }
+function claseConf(c){ if(c==null) return 'b-conf-baja'; return c>=0.75?'b-conf-alta':(c>=0.5?'b-conf-media':'b-conf-baja'); }
+function txtConf(c){ return c==null?'—':Math.round(c*100)+'%'; }
+
+let _toastT;
+function toast(msg,tipo){ const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+(tipo||'');
+  clearTimeout(_toastT); _toastT=setTimeout(()=>t.className='',3200); }
+
+function pintarLista(){
+  const cont = document.getElementById('items');
+  if(estado.vista==='pendientes'){
+    document.getElementById('cuenta').textContent = estado.propuestas.length+' en cola';
+    if(!estado.propuestas.length){
+      cont.innerHTML = '<div style="color:var(--suave);font-size:13px;padding:18px 6px;text-align:center">No hay reglas pendientes de revisar.</div>';
+      return;
+    }
+    cont.innerHTML = estado.propuestas.map(p=>{
+      const sinResolver = !p.Tabla_Destino;
+      return `<div class="item ${p.Id===estado.selId&&estado.selTipo==='pendiente'?'sel':''}" onclick="seleccionar(${p.Id})">
+        <div class="atr">${esc(p.Atributo)}</div>
+        <div class="tabla">${sinResolver?'(sin resolver)':esc(p.Tabla_Destino)}</div>
+        <div class="meta">
+          <span class="badge ${claseConf(p.Confianza)}">confianza ${txtConf(p.Confianza)}</span>
+          ${sinResolver?'<span class="badge b-sinres">sin columna</span>':''}
+        </div></div>`;
+    }).join('');
+  } else {
+    document.getElementById('cuenta').textContent = estado.nuevas.length+' detectada(s)';
+    if(!estado.nuevas.length){
+      cont.innerHTML = '<div style="color:var(--suave);font-size:13px;padding:18px 6px;text-align:center">No hay reglas nuevas detectadas. Pulsa "Buscar reglas nuevas ahora" arriba, o espera al siguiente barrido automático (cada 5 min).</div>';
+      return;
+    }
+    cont.innerHTML = estado.nuevas.map(p=>`<div class="item ${p.Id===estado.selId&&estado.selTipo==='nueva'?'sel':''}" onclick="seleccionarNueva(${p.Id})">
+      <div class="atr">${esc(p.Atributo)}</div>
+      <div class="tabla">${esc(p.Tabla_Destino || '(sin resolver)')}</div>
+      <div class="meta"><span class="badge badge-nueva">nueva, sin traducir</span></div>
+    </div>`).join('');
+  }
+}
+
+async function cargarLista(){
+  try{
+    estado.propuestas = await DataAPI.pendientes();
+    pintarLista();
+  }catch(e){
+    document.getElementById('items').innerHTML = '';
+    document.getElementById('detalle').innerHTML = `<div class="vacio">${esc(e.message)}</div>`;
+  }
+}
+
+async function cargarNuevas(){
+  try{
+    estado.nuevas = await DataAPI.nuevas();
+    pintarLista();
+  }catch(e){
+    document.getElementById('items').innerHTML = '';
+    document.getElementById('detalle').innerHTML = `<div class="vacio">${esc(e.message)}</div>`;
+  }
+}
+
+async function cambiarVista(v){
+  estado.vista = v;
+  estado.selId = null; estado.selTipo = null;
+  document.getElementById('tabPendientes').classList.toggle('activo', v==='pendientes');
+  document.getElementById('tabNuevas').classList.toggle('activo', v==='nuevas');
+  document.getElementById('tituloLista').textContent = v==='pendientes' ? 'Pendientes' : 'Reglas nuevas';
+  document.getElementById('detalle').innerHTML = '<div class="vacio">Selecciona un elemento de la izquierda.</div>';
+  if(v==='nuevas') await cargarNuevas(); else await cargarLista();
+}
+
+function seleccionarNueva(id){
+  estado.selId = id; estado.selTipo = 'nueva';
+  pintarLista();
+  const p = estado.nuevas.find(x=>x.Id===id);
+  if(!p) return;
+  document.getElementById('detalle').innerHTML = `
+    <div class="dcab"><div class="atr">${esc(p.Atributo)}</div>
+      <div class="badges"><span class="badge badge-nueva">detectada, sin traducir</span>
+        <span class="badge b-conf-media">${esc(p.Tabla_Destino || 'sin columna resuelta')}</span></div></div>
+    <div class="ficha">
+      <div class="campo"><div class="et">Regla original (Desc_Funcional)</div><div class="resp">${esc(p.Desc_Funcional_Original)}</div></div>
+      <div class="campo"><div class="et">Id_Calidad_Tabla_Atributo</div><div class="resp">${esc(p.Id_Calidad_Tabla_Atributo)}</div></div>
+    </div>
+    <div class="decision">
+      <h3>¿Arrancar la traducción de esta regla?</h3>
+      <p style="font-size:13px;color:var(--suave);margin:0 0 12px">
+        Al aprobar, se llama al LLM para traducir esta regla a una condición SQL y se genera la
+        vista previa del bloque T-SQL (puede tardar alrededor de un minuto). Pasa a la pestaña
+        "Pendientes" para la revisión normal — esto no activa ni despliega nada todavía.</p>
+      <div class="acciones">
+        <button class="btn btn-ok" id="btnAprobarNueva" onclick="aprobarNueva(${id})">Aprobar (traducir con LLM)</button>
+      </div>
+    </div>`;
+}
+
+async function aprobarNueva(id){
+  const btn = document.getElementById('btnAprobarNueva');
+  btn.disabled = true; btn.textContent = 'Traduciendo (puede tardar ~1 min)...';
+  try{
+    const r = await DataAPI.aprobarNueva(id);
+    estado.nuevas = estado.nuevas.filter(p=>p.Id!==id);
+    estado.selId = null; estado.selTipo = null;
+    pintarLista();
+    const confTxt = r.confianza!=null ? Math.round(r.confianza*100)+'%' : '—';
+    document.getElementById('detalle').innerHTML = `<div class="vacio">Traducida y movida a "Pendientes" (confianza ${confTxt}). Cámbiate de pestaña para revisarla.</div>`;
+    toast('Regla traducida, revísala en la pestaña Pendientes.','ok');
+  }catch(e){
+    toast(e.message,'no');
+    btn.disabled = false; btn.textContent = 'Aprobar (traducir con LLM)';
+  }
+}
+
+async function detectarNuevas(){
+  const btn = document.getElementById('btnDetectar');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  try{
+    const r = await DataAPI.detectar();
+    toast(`Detección completa: ${r.nuevas_detectadas} regla(s) nueva(s) de ${r.total_activas} activas.`,'ok');
+    if(estado.vista==='nuevas') await cargarNuevas();
+  }catch(e){
+    toast(e.message,'no');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Buscar reglas nuevas ahora';
+  }
+}
+
+async function seleccionar(id){
+  estado.selId = id; estado.selTipo = 'pendiente';
+  pintarLista();
+  document.getElementById('detalle').innerHTML = '<div class="cargando">Cargando...</div>';
+  let p;
+  try{ p = await DataAPI.ver(id); }
+  catch(e){ document.getElementById('detalle').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+
+  const regla = p.Regla_Propuesta_JSON || {};
+  document.getElementById('detalle').innerHTML = `
+    <div class="dcab"><div class="atr">${esc(p.Atributo)}</div>
+      <div class="badges">
+        <span class="badge ${claseConf(p.Confianza)}">confianza ${txtConf(p.Confianza)}</span>
+        <span class="badge b-conf-media">${esc(p.Tabla_Destino || 'sin columna resuelta')}</span>
+      </div></div>
+    <div class="ficha">
+      <div class="campo"><div class="et">Regla original</div><div class="resp">${esc(p.Desc_Funcional_Original)}</div></div>
+      ${regla.error?`<div class="campo"><div class="et">Aviso de traducción</div><div class="resp" style="color:var(--no)">${esc(regla.error)}</div></div>`:''}
+      ${regla.aviso_contexto?`<div class="campo"><div class="et">⚠ Posible pérdida de contexto</div><div class="resp" style="color:var(--warn)">${esc(regla.aviso_contexto)}</div></div>`:''}
+      ${regla.aviso_bloque?`<div class="campo"><div class="et">Aviso</div><div class="resp" style="color:var(--warn)">${esc(regla.aviso_bloque)}</div>
+        ${regla.mecanismo==='jql'?`
+          <div style="margin-top:8px"><label class="lbl">JQL editado a mano (incluye la etiqueta Clave: correcta)</label>
+            <input class="in" id="f_jql_manual" style="width:100%;padding:8px 10px;border:1px solid var(--linea);border-radius:7px;font-family:var(--mono);font-size:12.5px" value="${esc(regla.jql||'')}"></div>
+        `:`
+          <div style="margin-top:8px"><label class="lbl">Columnas clave (separadas por coma)</label>
+            <input class="in" id="f_clave_manual" style="width:100%;padding:8px 10px;border:1px solid var(--linea);border-radius:7px;font-family:var(--mono);font-size:12.5px" placeholder="Id_Expediente, Id_Pais"></div>
+        `}
+        <button class="btn btn-sec btn-sm" style="margin-top:8px" onclick="regenerarBloque(${id},'${regla.mecanismo}')">Reintentar con esto</button>
+      </div>`:''}
+      ${regla.jql?`<div class="campo"><div class="et">JQL propuesto${regla.jql_prueba?` — probado: ${regla.jql_prueba.ok?`${regla.jql_prueba.total_filas_ko} fila(s) KO`:'error'}`:''}</div><pre class="sql">${esc(regla.jql)}</pre>
+        <div style="font-size:11.5px;color:var(--suave);margin-top:6px">
+          <b>Sobre la trazabilidad de esta prueba:</b> la comprobación de arriba se ejecuta sobre datos
+          reales pero <b>no deja constancia en ningún sitio</b> — el motor solo registra el resultado
+          si se le pasa el identificador de la regla, y aquí se le pasa vacío a propósito, porque una
+          tanda de evaluación son cientos de ejecuciones y no tiene sentido volcarlas a una tabla
+          compartida con el equipo.<br>
+          Para dejar constancia y poder replicar la ejecución después existe
+          <code>POST /api/calidad/reglas/&lt;id&gt;/registrar_ejecucion</code>, que escribe en
+          <code>Tb_Calidad_Resultado_Validacion_Pruebas</code>. Se lanza deliberadamente fuera de esta
+          pantalla. Escribe solo en la tabla de pruebas, nunca en el registro real, y <b>no</b> publica
+          la regla.</div></div>`:''}
+      ${regla.bloque_sql_preview?`<div class="campo"><div class="et">Vista previa del bloque T-SQL (se regenera al aprobar, a partir de los campos de abajo)</div><pre class="sql">${esc(regla.bloque_sql_preview)}</pre></div>`:''}
+      <div class="campo"><div class="et">Regla estructurada propuesta · editable antes de aprobar</div>
+        <textarea class="edit" id="f_regla">${esc(JSON.stringify(regla, null, 2))}</textarea>
+        <div style="font-size:11.5px;color:var(--suave);margin-top:6px">
+          Mecanismo nuevo (Tb_Calidad_Regla): edita "condicion_violada"/"mensaje"/"clave_cols" (lista de columnas clave, si no se detectó sola).<br>
+          Mecanismo antiguo (SharePoint): si la columna elegida es incorrecta o falta, edita "columna_elegida" con la CLAVE exacta.</div></div>
+    </div>
+    <div class="decision"><h3>Decisión del Comité</h3>
+      <div class="fila"><label class="lbl">Comentario (obligatorio si se rechaza)</label>
+        <textarea class="in" id="f_coment" rows="2" placeholder="Motivo o nota de la revisión..."></textarea></div>
+      <div class="acciones">
+        <button class="btn btn-ok" onclick="decidir(${id},'APROBADA')">Aprobar y activar</button>
+        <button class="btn btn-no" onclick="decidir(${id},'RECHAZADA')">Rechazar</button>
+      </div></div>`;
+}
+
+async function regenerarBloque(id, mecanismo){
+  const body = {};
+  if(mecanismo==='jql'){
+    body.jql = (document.getElementById('f_jql_manual').value||'').trim();
+    if(!body.jql){ toast('Escribe el JQL antes de reintentar.','no'); return; }
+  } else {
+    const texto = (document.getElementById('f_clave_manual').value||'').trim();
+    if(!texto){ toast('Indica al menos una columna clave.','no'); return; }
+    body.clave_cols = texto.split(',').map(s=>s.trim()).filter(Boolean);
+  }
+  try{
+    const r = await DataAPI.regenerar(id, body);
+    toast(r.exito?'Regenerado correctamente.':'Sigue sin poder generarse, revisa el aviso.', r.exito?'ok':'no');
+    await seleccionar(id);
+  }catch(e){
+    toast(e.message,'no');
+  }
+}
+
+async function decidir(id, decision){
+  if(!revisor()){ toast('Indica el revisor arriba a la derecha.','no'); return; }
+  const coment = (document.getElementById('f_coment').value||'').trim();
+  if(decision==='RECHAZADA' && !coment){ toast('Un rechazo necesita comentario.','no'); return; }
+
+  let reglaFinal = null;
+  const textoRegla = document.getElementById('f_regla').value;
+  try{ reglaFinal = JSON.parse(textoRegla); }
+  catch(e){ toast('La regla editada no es JSON válido.','no'); return; }
+
+  try{
+    const j = await DataAPI.revisar(id, decision, revisor(), coment, reglaFinal);
+    estado.propuestas = estado.propuestas.filter(p=>p.Id!==id);
+    estado.selId = null;
+    pintarLista();
+    document.getElementById('detalle').innerHTML = `<div class="vacio">Propuesta ${decision==='APROBADA'?'aprobada y activada':'rechazada'}.${j.activada_en?(' Config: '+esc(j.activada_en)):''}</div>`;
+    toast(decision==='APROBADA'?'Regla aprobada y activada.':'Regla rechazada.', decision==='APROBADA'?'ok':'no');
+  }catch(e){
+    toast(e.message,'no');
+  }
+}
+
+async function abrirDespliegue(){
+  document.getElementById('cuerpoDespliegue').innerHTML = '<div class="cargando">Generando vista previa...</div>';
+  document.getElementById('fondoDespliegue').classList.add('abierto');
+  try{
+    const r = await DataAPI.previsualizarDespliegue();
+    const n = (r.bloques||[]).length;
+    document.getElementById('cuerpoDespliegue').innerHTML = `
+      <div class="nota">Esto va a CREAR O ALTERAR dbo.Sp_Calidad_AgenteIA en DW_PRINCIPAL (base de producción compartida) con los ${n} bloque(s) aprobado(s) hasta ahora. Revisa el SQL completo antes de confirmar.</div>
+      <pre class="sql">${esc(r.sql)}</pre>`;
+  }catch(e){
+    document.getElementById('cuerpoDespliegue').innerHTML = `<div class="nota" style="color:var(--no)">${esc(e.message)}</div>`;
+  }
+}
+function cerrarDespliegue(){ document.getElementById('fondoDespliegue').classList.remove('abierto'); }
+
+async function confirmarDespliegue(){
+  if(!confirm('¿Seguro que quieres desplegar Sp_Calidad_AgenteIA de verdad en DW_PRINCIPAL? Esto ejecuta CREATE OR ALTER PROCEDURE en producción.')) return;
+  const btn = document.getElementById('btnConfirmarDespliegue');
+  btn.disabled = true; btn.textContent = 'Desplegando...';
+  try{
+    await DataAPI.desplegar();
+    toast('Sp_Calidad_AgenteIA desplegado en DW_PRINCIPAL.','ok');
+    cerrarDespliegue();
+  }catch(e){
+    toast(e.message,'no');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Desplegar en DW_PRINCIPAL';
+  }
+}
+
+cargarLista();
+</script>
+</body>
+</html>

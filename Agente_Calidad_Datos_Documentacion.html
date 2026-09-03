@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Agente de Calidad de Datos — Documentación funcional y técnica</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+  :root{
+    --rojo:#E5002B; --vino:#960047; --vino2:#7d003b;
+    --tinta:#1f2124; --suave:#5c6370; --linea:#dcdde2; --gris:#f6f7f9;
+    --ok:#1f7a52; --ok-bg:#e8f4ee; --no:#C8102E; --no-bg:#fbeceb;
+    --warn:#8a5d10; --warn-bg:#fcf3de;
+    --mono:"Consolas","SF Mono",ui-monospace,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{font-family:var(--sans);color:var(--tinta);font-size:10.2pt;line-height:1.52;margin:0}
+  h1{font-size:21pt;color:var(--vino2);margin:0 0 4pt;line-height:1.2;letter-spacing:-.4pt}
+  h2{font-size:13pt;color:var(--vino);margin:20pt 0 7pt;padding-bottom:3pt;
+     border-bottom:1.5px solid var(--vino);page-break-after:avoid;letter-spacing:-.2pt}
+  h3{font-size:11pt;color:var(--tinta);margin:13pt 0 4pt;page-break-after:avoid}
+  h4{font-size:10pt;color:var(--vino2);margin:10pt 0 3pt;page-break-after:avoid}
+  p{margin:0 0 6pt;text-align:justify}
+  ul,ol{margin:0 0 7pt;padding-left:16pt}
+  li{margin-bottom:2.5pt}
+  code{font-family:var(--mono);font-size:8.9pt;background:var(--gris);
+       padding:1px 3px;border-radius:3px;border:1px solid var(--linea)}
+  pre{font-family:var(--mono);font-size:8.4pt;background:#2a0d19;color:#f3d9e4;
+      padding:8pt 10pt;border-radius:5px;overflow-x:auto;white-space:pre-wrap;
+      word-break:break-word;margin:0 0 8pt;line-height:1.42}
+  pre code{background:none;border:none;color:inherit;padding:0;font-size:inherit}
+  table{width:100%;border-collapse:collapse;margin:0 0 9pt;font-size:9pt;page-break-inside:avoid}
+  th{background:var(--vino);color:#fff;text-align:left;padding:4.5pt 6pt;font-weight:600;font-size:8.8pt}
+  td{padding:4pt 6pt;border-bottom:1px solid var(--linea);vertical-align:top}
+  tr:nth-child(even) td{background:#fafbfc}
+  .cab{border-bottom:3px solid var(--rojo);padding-bottom:9pt;margin-bottom:4pt}
+  .sub{color:var(--suave);font-size:10.5pt;margin:0}
+  .meta{color:var(--suave);font-size:8.6pt;margin-top:6pt}
+  .caja{border:1px solid var(--linea);border-left:3px solid var(--vino);
+        background:var(--gris);padding:7pt 10pt;margin:0 0 9pt;border-radius:0 4px 4px 0;
+        page-break-inside:avoid}
+  .caja p:last-child{margin-bottom:0}
+  .alerta{border-left-color:var(--no);background:var(--no-bg)}
+  .aviso{border-left-color:var(--warn);background:var(--warn-bg)}
+  .bien{border-left-color:var(--ok);background:var(--ok-bg)}
+  .et{font-weight:700;font-size:8.4pt;text-transform:uppercase;letter-spacing:.4pt;
+      display:block;margin-bottom:2pt}
+  .et-no{color:var(--no)} .et-ok{color:var(--ok)} .et-warn{color:var(--warn)} .et-n{color:var(--vino)}
+  .salto{page-break-before:always}
+  .nowrap{white-space:nowrap}
+  .pie{margin-top:14pt;padding-top:6pt;border-top:1px solid var(--linea);
+       color:var(--suave);font-size:8.4pt;text-align:center}
+  .flujo{border:1px solid var(--linea);border-radius:5px;padding:9pt 11pt;margin:0 0 9pt;background:#fff}
+  .paso{display:flex;gap:8pt;margin-bottom:7pt;page-break-inside:avoid}
+  .paso:last-child{margin-bottom:0}
+  .num{flex:0 0 17pt;height:17pt;border-radius:50%;background:var(--vino);color:#fff;
+       font-weight:700;font-size:9pt;text-align:center;line-height:17pt}
+  .paso-txt{flex:1}
+  .paso-txt b{color:var(--vino2)}
+  .peq{font-size:8.8pt;color:var(--suave)}
+</style>
+</head>
+<body>
+
+<div class="cab">
+  <h1>Agente de Calidad de Datos</h1>
+  <p class="sub">Documentación funcional y técnica end-to-end</p>
+  <p class="meta">Repositorio <code>rag</code> · rama <code>agent-dev</code> · una entidad hipotecaria<br>
+  Estado a 1 de septiembre de 2026 · Contexto regulatorio IFRS9</p>
+</div>
+
+<h2>1. Qué es y qué problema resuelve</h2>
+
+<p>El Agente de Calidad de Datos evalúa reglas de calidad sobre las tablas del Data Warehouse
+de una entidad hipotecaria, y —sobre todo— <b>traduce reglas de negocio escritas en texto libre
+a reglas ejecutables</b>, usando un modelo de lenguaje local que <b>propone</b> y un Comité del
+dato que <b>revisa y aprueba</b> antes de que nada se ejecute contra datos reales.</p>
+
+<div class="caja">
+  <span class="et et-n">Principio de diseño</span>
+  <p>El agente <b>nunca activa una regla por su cuenta</b>. Toda propuesta pasa por una cola de
+  revisión humana, y el despliegue final contra producción es un paso aparte, explícito y
+  confirmado. El LLM es un asistente de traducción, no una autoridad.</p>
+</div>
+
+<p>El problema de fondo es que el catálogo de reglas de calidad está escrito por negocio en
+lenguaje natural («la fecha tiene que ser válida», «el campo no puede estar vacío», «tiene que
+tener 2 decimales»), mientras que el motor que las ejecuta necesita parámetros exactos.
+Traducir a mano ese catálogo es lento; traducirlo automáticamente es rápido pero arriesgado.
+El proyecto existe para hacerlo automáticamente <em>sin</em> asumir ese riesgo.</p>
+
+<h3>Proyecto hermano</h3>
+<p>Es un proyecto independiente del agente de documentación del diccionario (rama <code>main</code>,
+puerto 5000). Corre en su propio servicio Flask (puerto 5001), en la misma máquina que Ollama,
+y no comparte ciclo de despliegue con la aplicación de producción del diccionario. Solo reutiliza
+en modo <b>lectura</b> el sistema RAG del diccionario como contexto de negocio.</p>
+
+<h2>2. Topología: dónde vive cada cosa</h2>
+
+<p>Entender el proyecto exige entender que toca <b>tres sistemas distintos</b>, con permisos y
+niveles de riesgo muy diferentes.</p>
+
+<table>
+  <tr><th style="width:24%">Sistema</th><th style="width:26%">Ubicación</th><th>Rol y nivel de riesgo</th></tr>
+  <tr>
+    <td><b>Datos a analizar</b></td>
+    <td class="nowrap"><code>SERVIDOR_DATOS\INSTANCIA</code><br><code>DW_PRINCIPAL</code>, <code>DW_CRUDO</code>, <code>DW_LAGO</code></td>
+    <td><b>Solo lectura.</b> Las tablas de hechos reales. Algunas reglas declaran <code>DW_PRINCIPAL</code>
+    pero la tabla vive realmente en <code>DW_CRUDO</code> (origen AS/400), por lo que el código
+    prueba las tres antes de rendirse.</td>
+  </tr>
+  <tr>
+    <td><b>Catálogo y motor</b></td>
+    <td class="nowrap"><code>APP_CATALOGO</code><br><code>APP_VALIDADORES</code></td>
+    <td><b>Lectura</b> del catálogo de reglas; <b>ejecución</b> de los validadores. Son
+    procedimientos de producción <b>ajenos al proyecto</b>, que pueden cambiar sin avisar.</td>
+  </tr>
+  <tr>
+    <td><b>Workspace propio</b></td>
+    <td class="nowrap"><code>SERVIDOR_WORKSPACE</code><br><code>WORKSPACE_AGENTE</code></td>
+    <td><b>Lectura y escritura.</b> Todo lo que el agente produce (propuestas, bloques
+    aprobados, resultados de pruebas) vive aquí, nunca en producción.</td>
+  </tr>
+  <tr>
+    <td><b>Modelo de lenguaje</b></td>
+    <td class="nowrap"><code>localhost:11434</code><br><code>phi4-calidad</code></td>
+    <td>Ollama en local, en la misma máquina que el servicio. Ningún dato sale de la red interna.
+    Es una variante propia de <code>phi4:14b-q8_0</code> con la ventana de contexto ampliada
+    (ver §8); el modelo base lo comparte el agente del diccionario y no se toca.</td>
+  </tr>
+</table>
+
+<div class="caja aviso">
+  <span class="et et-warn">Advertencia permanente sobre el motor</span>
+  <p>Los validadores y el intérprete del mini-lenguaje de parámetros <b>no son de este repositorio</b>:
+  son procedimientos SQL de producción escritos por otro equipo. Se han encontrado varias veces
+  comportamientos reales que ni los manuales oficiales ni los comentarios del propio procedimiento
+  documentaban. Lo que el proyecto sabe del motor es una <b>copia fechada de una auditoría</b>, no
+  un enlace vivo. <b>Si algo no cuadra entre lo que dice el prompt y lo que hace el motor, hay que
+  releer el procedimiento real antes de asumir que el LLM se equivocó.</b></p>
+</div>
+
+<h2>3. Arquitectura del repositorio</h2>
+
+<p>El código está organizado en paquetes Python por capa de arquitectura. Cada script se invoca
+como módulo desde la raíz (<code>python -m paquete.modulo</code>).</p>
+
+<table>
+  <tr><th style="width:18%">Paquete</th><th>Responsabilidad</th></tr>
+  <tr><td><code>nucleo/</code></td><td>Motor determinista de reglas y anomalías, más el orquestador.
+    Evalúa una tabla contra un fichero de configuración y genera un informe. <b>No usa LLM.</b></td></tr>
+  <tr><td><code>origen_reglas/</code></td><td>De texto libre a propuesta: detección de reglas activas,
+    traducción vía LLM, registro en la cola de revisión, y el arnés de evaluación.</td></tr>
+  <tr><td><code>activacion/</code></td><td>De propuesta aprobada a algo ejecutable: generación del
+    bloque T-SQL, o de la sentencia del mini-lenguaje (JQL), y su despliegue.</td></tr>
+  <tr><td><code>web/</code></td><td>Servicio Flask propio (puerto 5001): rutas <code>/api/calidad/…</code>,
+    las tres páginas HTML y el <em>poller</em> que detecta reglas nuevas cada 300 s.</td></tr>
+  <tr><td><code>diccionario/</code></td><td>Dependencias de solo lectura sobre el sistema RAG del
+    diccionario, que aporta contexto de negocio al LLM.</td></tr>
+  <tr><td><code>exploracion/</code></td><td>Herramientas sueltas de investigación contra el servidor
+    real. <b>No forma parte del flujo de producción.</b></td></tr>
+  <tr><td><code>_archivo/</code></td><td>Pipeline antiguo (SharePoint/Excel), archivado. No se toca.</td></tr>
+</table>
+
+<h2 class="salto">4. El flujo end-to-end</h2>
+
+<div class="flujo">
+  <div class="paso"><div class="num">1</div><div class="paso-txt">
+    <b>Detección</b> — Se leen las reglas vigentes del sistema nativo y se cruzan con los atributos
+    físicos. <span class="peq">Fuente autoritativa; la clave física ya viene resuelta.</span></div></div>
+  <div class="paso"><div class="num">2</div><div class="paso-txt">
+    <b>Traducción</b> — El LLM elige uno de tres mecanismos y produce los parámetros.
+    <span class="peq">Se le da el esquema real y la clave primaria real para que no invente.</span></div></div>
+  <div class="paso"><div class="num">3</div><div class="paso-txt">
+    <b>Verificación automática</b> — La propuesta se prueba y se somete a una batería de guardas.
+    <span class="peq">Aquí se cortan las traducciones que «funcionan» pero no miden lo que deben.</span></div></div>
+  <div class="paso"><div class="num">4</div><div class="paso-txt">
+    <b>Cola de revisión humana</b> — Queda PENDIENTE hasta que una persona la apruebe, corrija o rechace.
+    <span class="peq">Es el punto de control obligatorio del Comité del dato.</span></div></div>
+  <div class="paso"><div class="num">5</div><div class="paso-txt">
+    <b>Activación</b> — Al aprobar se persiste el artefacto en el workspace propio.
+    <span class="peq">Desplegarlo en producción sigue siendo un paso aparte y explícito.</span></div></div>
+</div>
+
+<h3>4.1 Detección</h3>
+<p>Se leen de <code>APP_CATALOGO</code> las reglas con <code>Tb_Calidad_Regla.Es_Activa = 1</code>,
+cruzadas con <code>Tb_Calidad_Tabla_Atributo</code>. De ese cruce sale, por cada combinación
+regla + atributo físico, la <b>clave física ya resuelta</b> (<code>Clave_Fisico</code>), con la forma
+<code>Servidor.BaseDatos.Esquema.Tabla.Columna</code>.</p>
+<p>Existen dos modos: <b>sincronización completa</b> (detecta y traduce todo de golpe) y
+<b>detección barata</b> sin LLM, que es lo que ejecuta el <em>poller</em> en segundo plano cada
+300 segundos y deja los hallazgos en estado <code>NUEVA</code> para que un humano decida si merece
+la pena gastar una llamada al modelo.</p>
+
+<h3>4.2 Traducción con el LLM</h3>
+<p>Es el paso caro: cada llamada tarda entre 1 y 4 minutos. Antes de invocar al modelo, el sistema
+le prepara el contexto:</p>
+<ul>
+  <li><b>Esquema real de la tabla</b>, con precisión, escala y longitud reales — no solo el nombre
+  del tipo. Sin ese dato el modelo no puede saber, por ejemplo, que una columna ya es
+  <code>numeric(13,2)</code> y que por tanto exigirle 2 decimales es una comprobación que nunca
+  puede fallar.</li>
+  <li><b>Clave primaria real</b>, buscada en las tres bases de datos candidatas, con respaldo en un
+  índice único si no hay restricción formal.</li>
+  <li><b>Ejemplos confirmados</b> por revisores humanos como correctos, que se reutilizan como
+  ejemplos de refuerzo.</li>
+</ul>
+
+<h4>El problema de las tablas anchas</h4>
+<p>Con tablas de muchas columnas el modelo devolvía un JSON válido pero con un <b>formato
+inventado</b>, sin llegar siquiera a agotar el tiempo de espera: no era un corte a mitad de
+respuesta, era perder de vista el formato de salida con un prompt demasiado grande. Calibrado
+contra una tabla de 86 columnas, el umbral quedó en <b>50 columnas</b>.</p>
+<p>Por encima de ese umbral se hace un paso previo, más simple, que reduce el esquema a las
+columnas relevantes antes de traducir. Si esa llamada también falla, hay un <b>respaldo sin IA</b>
+por coincidencia de palabras. Y si aun así el prompt sigue siendo grande, la propuesta lleva un
+aviso para que el revisor la mire con más atención.</p>
+
+<h3>4.3 Los tres mecanismos de traducción</h3>
+<p>El modelo elige, <b>en este orden de preferencia</b>, cómo expresar la regla. La lógica es
+sencilla: cuanto menos SQL escrito a mano, menos hay que revisar y menos puede inventarse.</p>
+
+<h4>Mecanismo 1 — JQL (preferido)</h4>
+<p>Un mini-lenguaje de parámetros que el motor nativo ya interpreta, sin escribir SQL en absoluto.
+Tiene la forma <code>TIPO Etiqueta:valor Etiqueta:valor …</code>:</p>
+<pre><code>NUMERO Nulos:S Min:0 Dec:2 Clave:Id_Expediente,Id_Pais
+FECHA  Nulos:N EnDimTiempo:S Clave:Id_Operacion,Id_Pais
+TEXTO  Nulos:S Recorte:S MinLen:5 MaxLen:5 Clave:Id_Pais Filtro:Id_Pais=1</code></pre>
+<p>Tipos disponibles: <code>NUMERO</code>, <code>TEXTO</code>, <code>FECHA</code>,
+<code>BOOLEANO</code>, <code>LISTA</code>, <code>UNICO</code>.</p>
+
+<div class="caja alerta">
+  <span class="et et-no">Los valores por defecto del motor NO son neutros</span>
+  <p>Omitir una etiqueta no desactiva la comprobación: la deja en su valor por defecto, que a
+  menudo <em>sí</em> hace algo. <code>Nulos:S</code> significa «no compruebo completitud»;
+  <code>EnDimTiempo:S</code> valida además contra la dimensión tiempo; <code>MinDate:19890101</code>
+  es el inicio de actividad de la entidad, no «sin límite». Por eso el sistema los emite siempre
+  explícitos.</p>
+</div>
+
+<p>La gran ventaja de JQL es que se puede <b>probar de verdad contra datos reales sin publicar
+nada</b>: existe una variante del procedimiento del motor que recibe la sentencia en línea y, si
+se le pasa un identificador nulo, ni siquiera escribe en el log. Es la vía «medir primero,
+publicar después».</p>
+
+<h4>Mecanismo 2 — Validador genérico</h4>
+<p>Llama a un procedimiento que ya existe en producción (<code>Sp_Calidad_Numero</code>,
+<code>Texto</code>, <code>Fecha</code>, <code>Lista</code>, <code>Booleano</code>, <code>Unico</code>),
+volcando antes las filas a una tabla temporal. Es la salida cuando JQL no encaja o cuando tiene un
+fallo conocido.</p>
+
+<h4>Mecanismo 3 — Condición SQL personalizada</h4>
+<p>Último recurso: un fragmento SQL que describe las filas que <b>incumplen</b>, incrustado en un
+bloque generado. Es el más flexible y el más peligroso, porque obliga al modelo a escribir SQL
+sobre un esquema que solo conoce parcialmente.</p>
+
+<h3>4.4 Cola de revisión humana</h3>
+<p>Cada propuesta se registra en la tabla <code>CAL_Propuestas</code> del workspace propio, con la
+descripción original, la regla estructurada que propuso el LLM, su confianza y cualquier aviso
+generado. Los estados son <code>NUEVA</code> (detectada, aún sin traducir), <code>PENDIENTE</code>
+(traducida, esperando revisión), y <code>APROBADA</code> o <code>RECHAZADA</code>.</p>
+<p>El revisor puede además <b>corregir</b> la propuesta —editar el JQL a mano, forzar la clave
+primaria cuando la detección automática no la encontró— y regenerar el artefacto <b>sin volver a
+llamar al LLM</b>.</p>
+
+<h3>4.5 Activación y despliegue</h3>
+<p>Al aprobar, el artefacto se persiste según el mecanismo, en dos tablas <b>deliberadamente
+separadas</b>: los mecanismos que generan SQL van a <code>CAL_Bloques_Sp_AgenteIA</code>, mientras
+que JQL va a <code>CAL_Bloques_JQL</code>, porque no genera ningún bloque T-SQL y forzarle esas
+columnas no tendría sentido.</p>
+
+<div class="caja alerta">
+  <span class="et et-no">La frontera con producción</span>
+  <p>Persistir el artefacto en el workspace <b>no es desplegarlo</b>. El despliegue real —ensamblar
+  el procedimiento completo y ejecutar un <code>CREATE OR ALTER PROCEDURE</code> contra
+  <code>DW_PRINCIPAL</code>— es una función aparte que <b>por defecto no ejecuta nada</b>: devuelve el SQL
+  para que se revise, y solo lo aplica si se le pide explícitamente. El procedimiento generado nace
+  además con el modo simulacro activado por defecto.</p>
+</div>
+
+<h2 class="salto">5. El arnés de evaluación: cómo se sabe si el agente funciona</h2>
+
+<p>Esta es la pieza que convierte el proyecto en algo medible en lugar de una impresión. Compara,
+en segundo plano, cómo traduce el LLM reglas <b>ya implementadas a mano</b> contra el bloque real
+que escribió el equipo.</p>
+
+<h3>5.1 Mecánica</h3>
+<ul>
+  <li>Se lanza un <b>lote</b> con dos listas: reglas ya implementadas (comparables contra su bloque
+  real) y reglas activas todavía sin implementar (sin comparación posible, solo para revisión).</li>
+  <li>Cada regla se reintenta hasta un techo configurable (por defecto 20), parando antes si acierta
+  dentro de los primeros 5.</li>
+  <li>Cada resultado se guarda según va terminando, para poder ver resultados parciales sin esperar
+  a que acabe el lote entero —que puede durar horas.</li>
+  <li>Se registran tiempo y <b>tokens de entrada y salida</b> por intento, para diagnosticar coste y
+  riesgo de contexto con datos, no con intuición.</li>
+</ul>
+
+<h3>5.2 Los dos veredictos, y por qué hacen falta los dos</h3>
+<p>Cada fila tiene <b>dos juicios independientes</b>:</p>
+<table>
+  <tr><th style="width:26%">Veredicto</th><th>Qué es</th></tr>
+  <tr><td><b>Coincide</b> <span class="peq">(automático)</span></td>
+      <td>Heurística de comparación contra el bloque real. <b>No es equivalencia semántica SQL.</b>
+      A menudo no puede decidir y queda sin valor.</td></tr>
+  <tr><td><b>Correcta_Humano</b> <span class="peq">(manual)</span></td>
+      <td>Juicio de un revisor, con notas libres. Es el que de verdad importa.</td></tr>
+</table>
+<p>Comparar ambos campos <b>expone dónde falla el propio arnés</b>: si el humano dice «correcta» y
+la heurística dice «no coincide», es un falso negativo del arnés, no un fallo del agente. Las filas
+confirmadas correctas se reutilizan como ejemplos de refuerzo para el prompt.</p>
+
+<div class="caja bien">
+  <span class="et et-ok">Por qué esto resultó ser la pieza clave</span>
+  <p>El etiquetado humano no solo mide: es lo que permitió <b>validar cada guarda nueva antes de
+  darla por buena</b>, exigiendo que no bloqueara ninguna traducción que un revisor hubiera dado por
+  correcta. Ese contraste descartó una guarda que parecía evidente y era falsa (§7.3).</p>
+</div>
+
+<h2>6. Lo que se ha aprendido del motor real</h2>
+
+<p>Auditar el código real de los validadores —no solo su documentación— destapó comportamientos que
+ningún manual recogía. Están todos codificados como validaciones activas.</p>
+
+<table>
+  <tr><th style="width:22%">Hallazgo</th><th>Efecto real</th><th style="width:26%">Mitigación</th></tr>
+  <tr><td><b>Fallo de <code>@AdmiteNull</code></b></td>
+      <td>En las ramas TEXTO y LISTA, el parámetro que se pasa al validador es el de <em>otra</em>
+      rama, por un copia-pega. Nunca se asigna, así que llega nulo: <b>un valor nulo jamás se marca
+      inválido</b> por mucho que se pida.</td>
+      <td>Se prohíbe TEXTO con comprobación de nulos; se redirige al validador genérico, que llama
+      al procedimiento directamente sin pasar por el fallo.</td></tr>
+  <tr><td><b>BOOLEANO no valida</b></td>
+      <td>No marca inválidos los valores fuera de lista: los normaliza a 0/1 sin avisar. Una regla de
+      «valores válidos» mediría <b>100 % de cumplimiento siempre</b>.</td>
+      <td>BOOLEANO ni siquiera se ofrece como opción al modelo; se usa LISTA.</td></tr>
+  <tr><td><b><code>MaxDate:99991231</code> es dinámico</b></td>
+      <td>El motor lo traduce al 31/12 del año siguiente, así que un artefacto con ese literal
+      <b>mide un rango distinto cada año</b>.</td>
+      <td>Prohibido. Para no acotar por arriba, se omite la etiqueta.</td></tr>
+  <tr><td><b><code>Dec:</code> sí existe</b></td>
+      <td>La precisión decimal <em>sí</em> está implementada y conectada, pese a no aparecer en
+      ningún manual ni en los ejemplos del propio procedimiento.</td>
+      <td>Se documentó y se usa. Descubierto releyendo el procedimiento tras una intuición del
+      usuario que contradecía lo que se creía.</td></tr>
+</table>
+
+<h2 class="salto">7. El problema central: el «100 % de cumplimiento falso»</h2>
+
+<p>El hallazgo más importante del proyecto hasta la fecha. Al revisar un lote completo con todas
+las filas ya etiquetadas apareció un patrón que se repetía con <b>cuatro caras distintas</b>:</p>
+
+<div class="caja alerta">
+  <span class="et et-no">El patrón</span>
+  <p>Una regla se traduce a algo <b>formalmente correcto</b>. Pasa la validación gramatical. Se
+  ejecuta sin ningún error. No marca ni una sola fila. Y por tanto informa de un <b>100 % de
+  cumplimiento que no es real</b>, porque no comprueba lo que la regla pedía.</p>
+  <p>En un contexto regulatorio esto es <b>peor que un fallo ruidoso</b>: un error visible se
+  corrige; una garantía de calidad que nadie ha medido se da por buena.</p>
+</div>
+
+<h3>7.1 Las cuatro caras</h3>
+<table>
+  <tr><th style="width:30%">Caso</th><th>Por qué pasaba desapercibido</th></tr>
+  <tr><td><b>Regla de decimales sin la etiqueta que los mide</b></td>
+      <td>Omitir esa etiqueta es <em>neutro</em> en el motor. Una regla «tiene que ser un número
+      entero» sin ella no comprueba nada sobre los decimales.</td></tr>
+  <tr><td><b>Clave de trazabilidad inexistente</b></td>
+      <td>El motor acepta sin quejarse una clave que no es una columna real, porque solo la usa para
+      identificar filas del resultado. El modelo llegó a copiar el nombre descriptivo del catálogo
+      como si fuera una columna.</td></tr>
+  <tr><td><b>Regla sin ninguna comprobación dentro</b></td>
+      <td>Reglas de completitud que acababan con la comprobación de nulos desactivada y sin ningún
+      otro chequeo: no pueden marcar una fila mire los datos que mire.</td></tr>
+  <tr><td><b>Tabla maestra inventada</b></td>
+      <td>El motor de base de datos resuelve los nombres en diferido: el bloque se genera y hasta se
+      despliega sin queja, y falla en la <b>primera ejecución real en producción</b>.</td></tr>
+</table>
+
+<h3>7.2 La lección: el prompt no basta</h3>
+<div class="caja aviso">
+  <span class="et et-warn">Evidencia directa, medida en el propio proyecto</span>
+  <p>El prompt <em>ya</em> prohibía inventar tablas maestras y pedía, si no se sabe el nombre real,
+  usar SQL personalizado y bajar la confianza. En una regla concreta el modelo <b>hizo exactamente
+  las dos cosas que se le pedían</b>… y aun así escribió el nombre de una tabla inexistente.</p>
+  <p>Se reforzó después el prompt para otro caso, con instrucciones explícitas y en mayúsculas. Al
+  relanzar la evaluación, las tres reglas afectadas <b>volvieron a fallar igual</b>. Lo único que
+  las paró fue la verificación en código.</p>
+  <p><b>Conclusión operativa:</b> cada instrucción del prompt que de verdad importe necesita
+  además una comprobación automática que la verifique contra el esquema real o contra el propio
+  texto de la regla.</p>
+</div>
+
+<h3>7.3 El método de validación de guardas</h3>
+<p>Toda comprobación nueva se contrasta contra las etiquetas humanas del lote completo antes de
+darla por buena. El criterio de aceptación es <b>cero casos de «bloquea algo que el revisor dio por
+correcto»</b>.</p>
+<p>No es teórico: ese contraste tumbó una guarda que parecía evidente —dar por hecho que «el campo
+no puede estar vacío» obliga siempre a comprobar nulos—. Habría bloqueado dos traducciones válidas,
+porque <b>en estas tablas «vacío» no siempre significa nulo</b>. Quedó documentada en el código
+para que nadie la reintente.</p>
+<p>Corolario útil: <b>las guardas estructurales</b> —las que solo miran la sentencia generada—
+<b>aguantan mejor que las basadas en el texto en español</b>, porque el catálogo redacta lo mismo de
+muchas formas y el significado depende de la columna.</p>
+
+<h3>7.4 Resultado medido</h3>
+<p>Contraste sobre las 62 traducciones JQL del lote de referencia, usando las etiquetas humanas
+como patrón: <b>21 filas bloqueadas, todas marcadas incorrectas por el revisor; 0 regresiones</b>
+sobre las 21 que dio por buenas. En una verificación posterior con el código ya desplegado, sobre
+9 reglas previamente defectuosas: 7 bloqueadas con mensaje accionable, 1 abstención del modelo,
+1 mejorada. <b>Ninguna sigue produciendo un cumplimiento falso.</b></p>
+
+<h2 class="salto">8. La ventana de contexto: un fallo invisible durante meses</h2>
+
+<p>Descubierto el 1 de septiembre de 2026, y merece sección propia porque su forma es distinta a
+todo lo anterior: no era un error en el código de este proyecto, sino una <b>configuración por
+defecto</b> de la herramienta que sirve al modelo.</p>
+
+<h3>8.1 El síntoma</h3>
+<p>Investigando cómo reducir el tamaño de lo que se le envía al modelo, se midió el consumo real
+por llamada. Y no variaba: de 113 intentos registrados, <b>64 daban exactamente el mismo número</b>,
+y ninguno lo superaba nunca. Un 57% de los casos apilados sobre un único valor no es una
+distribución natural — es un techo.</p>
+
+<div class="caja alerta">
+  <span class="et et-no">El diagnóstico</span>
+  <p>El modelo admite de forma nativa <b>16.384</b> tokens de contexto. Nada en el sistema lo
+  configuraba, así que la herramienta usaba su valor por defecto: <b>4.096</b>. Y los prompts
+  necesitan de verdad entre <b>4.800 y 5.400</b>.</p>
+  <p>Resultado: en más de la mitad de las traducciones se descartaba en silencio
+  <b>entre un 13% y un 24% del enunciado</b>. El motor no da error: simplemente corta.</p>
+</div>
+
+<h3>8.2 Lo que explica hacia atrás</h3>
+<p>Dos comportamientos que se venían arrastrando sin entender quedan explicados:</p>
+<ul>
+  <li><b>Que el modelo «perdiera el formato de salida» en tablas anchas.</b> Se atribuía a que un
+  prompt largo lo despistaba. La causa real es más simple: las instrucciones de formato,
+  que van al final, eran justamente las que se cortaban.</li>
+  <li><b>Que reforzar el prompt no sirviera de nada.</b> El 26 de agosto se añadieron instrucciones
+  explícitas para un caso concreto y al repetir la evaluación no cambió absolutamente nada. El texto
+  añadido caía fuera de la ventana: <b>nunca llegó a leerse</b>.</li>
+</ul>
+
+<h3>8.3 La corrección y su verificación</h3>
+<p>Se creó una variante propia del modelo con la ventana al doble. No implica reentrenar ni duplicar
+nada: son los mismos ficheros de pesos con un parámetro distinto. Se mantiene separada del modelo
+original porque lo comparte el agente del diccionario, que convive en la misma máquina.</p>
+
+<table>
+  <tr><th style="width:34%">Medición</th><th>Antes</th><th>Después</th></tr>
+  <tr><td>Tokens de entrada</td><td>tope en 4.095</td><td>4.787 – 5.352</td></tr>
+  <tr><td>Llamadas contra el techo</td><td>64 de 113</td><td>0</td></tr>
+  <tr><td>Reglas de fecha con mecanismo nativo</td><td>0 de 3</td><td><b>3 de 3</b></td></tr>
+  <tr><td>Reglas decimales con su parámetro</td><td>0 de 3</td><td><b>3 de 3</b></td></tr>
+</table>
+
+<div class="caja bien">
+  <span class="et et-ok">La lección, que corrige a la anterior</span>
+  <p>En la sección 7 se concluyó que «el prompt no basta». Este hallazgo la matiza: el prompt
+  <b>sí</b> estaba bien escrito — no llegaba entero. Ambas cosas son ciertas y no se contradicen:
+  las verificaciones en código siguen siendo necesarias, pero <b>antes de dar por inútil una
+  instrucción, hay que comprobar que el modelo la está recibiendo</b>.</p>
+  <p>El dato que lo delató llevaba meses guardado en la tabla de resultados. Los dos indicadores
+  que el sistema vigilaba —número de columnas y longitud del texto— eran aproximaciones, y ninguna
+  lo detectó. El aviso se calcula ahora con el consumo real de cada llamada.</p>
+</div>
+
+<h2 class="salto">9. Operación</h2>
+
+<h3>9.1 Arranque local</h3>
+<pre><code>pip install -r requirements.txt
+python -m web.servir_calidad          # sirve en http://localhost:5001</code></pre>
+<p>Páginas: <code>/calidad</code> (informe del motor determinista), <code>/calidad/reglas</code>
+(cola de revisión) y <code>/calidad/evaluacion</code> (banco de pruebas con etiquetado).</p>
+
+<h3>9.2 Despliegue</h3>
+<p>Corre como servicio de Windows (<code>ServicioAgenteCalidad</code>, vía NSSM) en
+<code>servidor-workspace.interno</code>, bajo una cuenta de dominio con acceso a los tres saltos de
+SQL Server. El árbol desplegado vive en <code>C:\ruta\despliegue</code>. No hay script de despliegue en
+el repositorio: se sincronizan los ficheros versionados y se reinicia el servicio.</p>
+
+<h2>10. Estado actual y limitaciones conocidas</h2>
+
+<h3>10.1 Limitaciones que no son fallos del código</h3>
+<p>Del análisis del lote completo, buena parte de las traducciones que un revisor marca como
+incorrectas <b>no son corregibles por software</b>, y conviene tenerlo claro:</p>
+<ul>
+  <li><b>Filtros de población que el agente no puede conocer.</b> El propio revisor lo anota:
+  «aunque el agente no tiene cómo saberlo». La información no existe en ningún sitio consultable.
+  <span class="peq">Solución real: documentar el filtro en el catálogo.</span></li>
+  <li><b>Claves de negocio no declaradas.</b> Tablas crudas sin clave primaria ni índice único,
+  cuya clave real es una combinación de expresiones que solo conoce una persona.</li>
+  <li><b>Reglas de negocio complejas.</b> Fórmulas que combinan varias columnas quedan fuera del
+  alcance de los mecanismos nativos por diseño.</li>
+</ul>
+
+<h3>10.2 Pendiente</h3>
+<ul>
+  <li><b>Publicar JQL en el catálogo</b> para que lo ejecute el motor de producción, no solo la
+  prueba en línea. Decisión deliberada, aplazada.</li>
+  <li><b>Trazabilidad solicitada por el equipo:</b> persistir la consulta o procedimiento ejecutado
+  y la población seleccionada, para poder replicar manualmente una ejecución. Pendiente de confirmar
+  si las tablas actuales ya lo cubren.</li>
+  <li><b>Rangos inventados por el modelo:</b> sigue proponiendo límites numéricos que no aparecen en
+  el texto de la regla. Hoy quedan interceptados por otras guardas, pero el comportamiento persiste.</li>
+</ul>
+
+<div class="caja">
+  <span class="et et-n">Resumen en una frase</span>
+  <p>Un sistema que traduce automáticamente reglas de calidad de negocio a reglas ejecutables, con
+  un modelo local que propone y un humano que aprueba, y cuya lección principal es que
+  <b>la seguridad no está en lo que se le pide al modelo, sino en lo que se verifica de su
+  respuesta</b>.</p>
+</div>
+
+<div class="pie">
+  Agente de Calidad de Datos · Documentación end-to-end · 1 de septiembre de 2026<br>
+  Repositorio <code>rag</code>, rama <code>agent-dev</code> — una entidad hipotecaria
+</div>
+
+</body>
+</html>

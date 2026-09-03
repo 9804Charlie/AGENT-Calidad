@@ -1,0 +1,40 @@
+{
+  "conexion": {
+    "servidor": "SQL2025SERVER",
+    "base_datos": "DW_PRINCIPAL",
+    "esquema": "dbo",
+    "tabla": "Tb_Fact_Operacion_Historia",
+    "driver": "ODBC Driver 17 for SQL Server",
+    "auth_windows": true,
+    "columnas_clave": ["Id_Operacion"]
+  },
+  "reglas": [
+    { "columna": "CRN", "tipo": "no_nulo", "severidad": "alta" },
+    { "columna": "Num_Impagos", "tipo": "rango", "min": 0, "max": 999, "severidad": "media" },
+    { "columna": "Rating_Conjunto", "tipo": "valores_permitidos",
+      "valores": ["AAA", "AA", "A", "BBB", "BB", "B", "CCC"], "severidad": "alta" },
+    { "columna": "Email_Contacto", "tipo": "patron_like", "patron": "%@%.%", "severidad": "baja" },
+    { "columnas": ["CRN"], "tipo": "unico", "severidad": "alta" },
+    { "tipo": "condicional",
+      "descripcion": "Si la operacion es hipoteca (Es_Euribor=1), la tasacion de la garantia de primer rango no puede ser nula.",
+      "condicion_si": "Es_Euribor = 1",
+      "condicion_entonces": "Tasacion_Garantia_Primer_Rango IS NOT NULL",
+      "severidad": "alta",
+      "clave_diccionario": "SRV1.DW_PRINCIPAL.dbo.Tb_Fact_Operacion_Historia.Tasacion_Garantia_Primer_Rango" },
+    { "tipo": "sql_personalizada",
+      "descripcion": "La fecha de alta de la operacion no puede ser futura.",
+      "condicion": "Fecha_Alta <= GETDATE()",
+      "severidad": "alta" }
+  ],
+  "anomalias": {
+    "numericas": {
+      "columnas": ["Num_Impagos", "Tasacion_Garantia_Primer_Rango"],
+      "metodo": "zscore",
+      "umbral": 3.0
+    },
+    "categoricas": {
+      "columnas": ["Rating_Conjunto", "Id_Producto_arco"],
+      "umbral_pct": 0.5
+    }
+  }
+}
